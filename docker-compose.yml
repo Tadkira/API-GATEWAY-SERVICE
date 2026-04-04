@@ -1,0 +1,49 @@
+version: '3.8'
+
+services:
+  api-gateway:
+    build: .
+    container_name: tadkira-gateway
+    ports:
+      - '3000:3000'
+    environment:
+      NODE_ENV: development
+      PORT: 3000
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      JWT_SECRET: ${JWT_SECRET:-tadkira-super-secret-jwt-key-dev-only-32chars}
+      JWT_EXPIRATION: ${JWT_EXPIRATION:-24h}
+      AUTH_SERVICE_URL: ${AUTH_SERVICE_URL:-http://host.docker.internal:3001}
+      FLIGHT_SERVICE_URL: ${FLIGHT_SERVICE_URL:-http://host.docker.internal:3002}
+      CHECKIN_SERVICE_URL: ${CHECKIN_SERVICE_URL:-http://host.docker.internal:3003}
+      OCR_SERVICE_URL: ${OCR_SERVICE_URL:-http://host.docker.internal:3004}
+      BOARDING_PASS_SERVICE_URL: ${BOARDING_PASS_SERVICE_URL:-http://host.docker.internal:3005}
+      THROTTLE_TTL: 60
+      THROTTLE_LIMIT: 100
+      SWAGGER_ENABLED: 'true'
+      SWAGGER_PATH: api/docs
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - tadkira-network
+
+  redis:
+    image: redis:7-alpine
+    container_name: tadkira-redis
+    ports:
+      - '6379:6379'
+    command: redis-server --save 60 1 --loglevel warning
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - tadkira-network
+
+networks:
+  tadkira-network:
+    driver: bridge
