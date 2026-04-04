@@ -1,49 +1,58 @@
+# ============================================================
+#  Tadkira — API Gateway Service
+#
+#  Prérequis : l'infrastructure doit être démarrée en premier.
+#  cd infra && docker-compose -f docker-compose.infra.yml up -d
+#
+#  Usage : docker-compose up -d
+# ============================================================
+
 version: '3.8'
 
 services:
   api-gateway:
-    build: .
+    build:
+      context: .
+      dockerfile: Dockerfile
     container_name: tadkira-gateway
     ports:
       - '3000:3000'
     environment:
-      NODE_ENV: development
+      NODE_ENV: ${NODE_ENV:-development}
       PORT: 3000
-      REDIS_HOST: redis
-      REDIS_PORT: 6379
+
+      # JWT (doit correspondre à l'Auth Service)
       JWT_SECRET: ${JWT_SECRET:-tadkira-super-secret-jwt-key-dev-only-32chars}
       JWT_EXPIRATION: ${JWT_EXPIRATION:-24h}
+
+      # Redis — fourni par l'infra partagée
+      REDIS_HOST: tadkira-redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
+
+      # URLs des microservices
       AUTH_SERVICE_URL: ${AUTH_SERVICE_URL:-http://host.docker.internal:3001}
       FLIGHT_SERVICE_URL: ${FLIGHT_SERVICE_URL:-http://host.docker.internal:3002}
       CHECKIN_SERVICE_URL: ${CHECKIN_SERVICE_URL:-http://host.docker.internal:3003}
       OCR_SERVICE_URL: ${OCR_SERVICE_URL:-http://host.docker.internal:3004}
       BOARDING_PASS_SERVICE_URL: ${BOARDING_PASS_SERVICE_URL:-http://host.docker.internal:3005}
-      THROTTLE_TTL: 60
-      THROTTLE_LIMIT: 100
-      SWAGGER_ENABLED: 'true'
-      SWAGGER_PATH: api/docs
-    depends_on:
-      redis:
-        condition: service_healthy
+
+      # Rate Limiting
+      THROTTLE_TTL: ${THROTTLE_TTL:-60}
+      THROTTLE_LIMIT: ${THROTTLE_LIMIT:-100}
+
+      # Swagger
+      SWAGGER_ENABLED: ${SWAGGER_ENABLED:-true}
+      SWAGGER_PATH: ${SWAGGER_PATH:-api/docs}
+
     restart: unless-stopped
+
+    # Connexion au réseau partagé créé par l'infra
     networks:
       - tadkira-network
 
-  redis:
-    image: redis:7-alpine
-    container_name: tadkira-redis
-    ports:
-      - '6379:6379'
-    command: redis-server --save 60 1 --loglevel warning
-    healthcheck:
-      test: ['CMD', 'redis-cli', 'ping']
-      interval: 10s
-      timeout: 5s
-      retries: 5
-    restart: unless-stopped
-    networks:
-      - tadkira-network
-
+# ─── Réseau externe (géré par infra/docker-compose.infra.yml) ──
 networks:
   tadkira-network:
-    driver: bridge
+    external: true
+    name: tadkira-network
