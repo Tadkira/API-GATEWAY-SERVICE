@@ -16,8 +16,9 @@
 
 ## 📋 Table des Matières
 
-1. [Contexte du Projet](#-contexte-du-projet)
-2. [Architecture Globale Microservices](#️-architecture-globale-microservices)
+1. [État d'Avancement du Projet](#-état-davancement-du-projet)
+2. [Contexte du Projet](#-contexte-du-projet)
+3. [Architecture Globale Microservices](#️-architecture-globale-microservices)
 3. [Stack Technique](#️-stack-technique)
 4. [Description du Service API Gateway](#-description-du-service-api-gateway)
 5. [Backlogs API Gateway](#-backlogs-api-gateway)
@@ -30,9 +31,23 @@
 
 ---
 
+## 📊 État d'Avancement du Projet
+
+| Service / Composant | État | Port | Détails de l'intégration |
+|:---:|:---:|:---:|---|
+| **API Gateway** | 🟢 Opérationnel | `3000` | **Infrastructure complète** (Phases 1 à 6 terminées) |
+| **Auth Service** | 🟢 Intégré | `3001` | Service de **Meriem** — Entièrement proxifié & sécurisé |
+| **Flight Service** | 🟢 Intégré | `3002` | Service de **Meriem** — Entièrement proxifié |
+| **Check-in Service** | 🟢 Intégré | `3003` | Service de **Meriem** — Entièrement proxifié & Rate Limited |
+| **OCR Service** | 🔴 En attente | `3004` | *Attente développement collègue* |
+| **Boarding Pass** | 🔴 En attente | `3005` | *Attente développement collègue* |
+| **Shared Infra** | 🟢 Déployé | — | Un seul Redis, RabbitMQ & MinIO pour toute l'app |
+
+---
+
 ## 🎯 Contexte du Projet
 
-**Tadkira** est un projet académique de fin d'études (Promotion 2026, 2CS SIL — *Techniques de Développement Mobile*) réalisé à l'**École Nationale Supérieure d'Informatique (ESI)**. L'objectif est de concevoir et développer une **application mobile d'enregistrement en ligne pour une compagnie aérienne**.
+**Tadkira** est un projet académique de fin d'études (Promotion 2026, 2CS SIL — _Techniques de Développement Mobile_) réalisé à l'**École Nationale Supérieure d'Informatique (ESI)**. L'objectif est de concevoir et développer une **application mobile d'enregistrement en ligne pour une compagnie aérienne**.
 
 ### Vision Produit
 
@@ -50,11 +65,11 @@ L'équipe a opté pour une **architecture microservices** en backend, avec une a
 
 ## 👥 Acteurs du Système
 
-| Acteur | Rôle | Interaction |
-|--------|------|-------------|
-| **Passager (Client)** | Utilisateur principal | Via l'application mobile Kotlin. Peut s'inscrire, s'authentifier, rechercher ses vols, effectuer le check-in, choisir son siège, déclarer ses bagages et télécharger sa carte d'embarquement. |
-| **Système de Réservation Externe (GDS)** | Fournisseur de données | Global Distribution System / Airline ERP. Fournit les données de vol et de réservation initiales (PNR). |
-| **Agent Aéroportuaire / Système d'Embarquement** | Valideur | Acteurs ou systèmes automatisés utilisant le QR Code généré pour valider l'embarquement ou vérifier les bagages. |
+| Acteur                                           | Rôle                   | Interaction                                                                                                                                                                                   |
+| ------------------------------------------------ | ---------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Passager (Client)**                            | Utilisateur principal  | Via l'application mobile Kotlin. Peut s'inscrire, s'authentifier, rechercher ses vols, effectuer le check-in, choisir son siège, déclarer ses bagages et télécharger sa carte d'embarquement. |
+| **Système de Réservation Externe (GDS)**         | Fournisseur de données | Global Distribution System / Airline ERP. Fournit les données de vol et de réservation initiales (PNR).                                                                                       |
+| **Agent Aéroportuaire / Système d'Embarquement** | Valideur               | Acteurs ou systèmes automatisés utilisant le QR Code généré pour valider l'embarquement ou vérifier les bagages.                                                                              |
 
 ---
 
@@ -63,10 +78,12 @@ L'équipe a opté pour une **architecture microservices** en backend, avec une a
 ### 1. Inscription & Connexion
 
 Le passager peut créer un compte via :
+
 - **Inscription classique** : Nom, adresse email, numéro de téléphone, mot de passe (hashé)
 - **SSO Google** : Connexion rapide via compte Google
 
 Processus détaillé :
+
 1. L'utilisateur télécharge l'application et choisit son mode de création de compte
 2. Vérification des informations de contact et création du profil utilisateur
 3. Génération d'un **token JWT sécurisé** pour les sessions futures
@@ -74,6 +91,7 @@ Processus détaillé :
 ### 2. Consultation de Vol (Flight Lookup)
 
 Le passager accède à ses informations de voyage en saisissant :
+
 - Sa **référence de réservation (PNR)**
 - Son **nom de famille**
 
@@ -84,6 +102,7 @@ Le système retourne l'itinéraire complet avec le statut du check-in (ouvert/fe
 > ⚠️ **Disponible uniquement dans les 24 heures précédant le départ**
 
 Workflow séquentiel :
+
 1. **Scan de Passeport (OCR)** : Le passager photographie la première page de son passeport. L'application envoie l'image au service OCR. Les données sont extraites et **vérifiées par rapport aux informations de réservation** (PNR).
 2. **Validation des Détails** : Revue et confirmation des informations extraites (prénom, nom, date de naissance, numéro de document).
 3. **Sélection de Siège** : Affichage d'une carte interactive de l'avion en temps réel. Verrouillage distribué du siège sélectionné via Redis pour éviter les doubles réservations.
@@ -93,11 +112,13 @@ Workflow séquentiel :
 ### 4. Carte d'Embarquement (Boarding Pass)
 
 À la suite de l'événement de finalisation :
+
 1. Génération d'un **QR Code unique signé cryptographiquement** (payload JWT)
 2. Composition d'un **document PDF** contenant le QR Code + résumé du vol, uploadé sur MinIO S3
 3. L'application mobile télécharge et met en **cache ces documents pour le mode hors-ligne**
 
 Le QR Code peut être scanné aux :
+
 - Comptoirs de dépôt des bagages
 - Points de contrôle de sécurité
 - Portes d'embarquement
@@ -148,15 +169,15 @@ L'approche technique repose sur une **séparation claire** entre l'interface uti
 
 ### Topologie des Microservices
 
-| # | Service | Responsabilité | Stack |
-|---|---------|---------------|-------|
-| **1** | **API Gateway** *(ce service)* | Point d'entrée unique, routage, JWT, rate-limiting, Swagger | NestJS, Redis |
-| **2** | **Auth Service** | Inscription, Google SSO, émission & validation JWT | NestJS, Prisma, PostgreSQL |
-| **3** | **Flight & Booking Service** | Données de vols, récupération par PNR | NestJS, Prisma, PostgreSQL |
-| **4** | **Check-In & Seat Service** | Workflow check-in, carte sièges, verrous Redis | NestJS, Redis, Prisma |
-| **5** | **Document OCR Service** | Analyse passeport (Tesseract), upload MinIO temporaire | NestJS, Tesseract, MinIO |
-| **6** | **Boarding Pass Service** | Génération QR Code JWT signé, composition PDF | NestJS, MinIO, PDFKit |
-| **7** | **Notification Service** | Consommateur RabbitMQ, Push Firebase (FCM), Email | NestJS, RabbitMQ, Firebase |
+| #     | Service                        | Responsabilité                                              | Stack                      |
+| ----- | ------------------------------ | ----------------------------------------------------------- | -------------------------- |
+| **1** | **API Gateway** _(ce service)_ | Point d'entrée unique, routage, JWT, rate-limiting, Swagger | NestJS, Redis              |
+| **2** | **Auth Service**               | Inscription, Google SSO, émission & validation JWT          | NestJS, Prisma, PostgreSQL |
+| **3** | **Flight & Booking Service**   | Données de vols, récupération par PNR                       | NestJS, Prisma, PostgreSQL |
+| **4** | **Check-In & Seat Service**    | Workflow check-in, carte sièges, verrous Redis              | NestJS, Redis, Prisma      |
+| **5** | **Document OCR Service**       | Analyse passeport (Tesseract), upload MinIO temporaire      | NestJS, Tesseract, MinIO   |
+| **6** | **Boarding Pass Service**      | Génération QR Code JWT signé, composition PDF               | NestJS, MinIO, PDFKit      |
+| **7** | **Notification Service**       | Consommateur RabbitMQ, Push Firebase (FCM), Email           | NestJS, RabbitMQ, Firebase |
 
 ### Communication Inter-Services
 
@@ -168,16 +189,16 @@ L'approche technique repose sur une **séparation claire** entre l'interface uti
 
 ## 🛠️ Stack Technique
 
-| Couche | Technologie | Usage dans ce service |
-|--------|-------------|----------------------|
-| **Framework** | NestJS (TypeScript) | Structure du service Gateway |
-| **Cache / Rate Limit** | Redis 7.x | Stockage compteurs rate-limiting |
-| **Sécurité** | JWT / Passport | Validation des tokens d'accès |
-| **Documentation** | Swagger / OpenAPI | UI de documentation centralisée |
-| **Logging** | Winston / Pino | Logs structurés JSON (compatible ELK) |
-| **Conteneurisation** | Docker | Packaging et isolation |
-| **Orchestration** | Kubernetes | Déploiement haute disponibilité |
-| **CI/CD** | GitHub Actions + Jenkins | Intégration et déploiement continus |
+| Couche                 | Technologie              | Usage dans ce service                 |
+| ---------------------- | ------------------------ | ------------------------------------- |
+| **Framework**          | NestJS (TypeScript)      | Structure du service Gateway          |
+| **Cache / Rate Limit** | Redis 7.x                | Stockage compteurs rate-limiting      |
+| **Sécurité**           | JWT / Passport           | Validation des tokens d'accès         |
+| **Documentation**      | Swagger / OpenAPI        | UI de documentation centralisée       |
+| **Logging**            | Winston / Pino           | Logs structurés JSON (compatible ELK) |
+| **Conteneurisation**   | Docker                   | Packaging et isolation                |
+| **Orchestration**      | Kubernetes               | Déploiement haute disponibilité       |
+| **CI/CD**              | GitHub Actions + Jenkins | Intégration et déploiement continus   |
 
 ---
 
@@ -187,13 +208,13 @@ L'**API Gateway** est le **point d'entrée unique et exclusif** de toute l'archi
 
 Il concentre les responsabilités **transversales** suivantes :
 
-| Responsabilité | Description |
-|----------------|-------------|
-| **🔀 Routing / Proxy** | Analyse chaque requête entrante et la redirige fidèlement vers le microservice approprié (headers, body, query params) |
-| **🔐 Security Filter (JWT)** | Guard global qui valide le token JWT sur toutes les routes protégées avant transmission ; routes publiques exemptées via `@Public()` |
-| **⏱️ Rate Limiting** | Limites par IP via Redis pour protéger contre les abus et attaques DDoS (global + règles spécifiques par route) |
-| **📚 Swagger Centralisé** | Documentation OpenAPI agrégée de tous les services, accessible à `/api/docs` avec authentification Bearer |
-| **📋 Logging & Error Handling** | Logging structuré JSON de chaque requête avec `requestId` unique ; filtre global normalisant toutes les réponses d'erreur |
+| Responsabilité                  | Description                                                                                                                          |
+| ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| **🔀 Routing / Proxy**          | Analyse chaque requête entrante et la redirige fidèlement vers le microservice approprié (headers, body, query params)               |
+| **🔐 Security Filter (JWT)**    | Guard global qui valide le token JWT sur toutes les routes protégées avant transmission ; routes publiques exemptées via `@Public()` |
+| **⏱️ Rate Limiting**            | Limites par IP via Redis pour protéger contre les abus et attaques DDoS (global + règles spécifiques par route)                      |
+| **📚 Swagger Centralisé**       | Documentation OpenAPI agrégée de tous les services, accessible à `/api/docs` avec authentification Bearer                            |
+| **📋 Logging & Error Handling** | Logging structuré JSON de chaque requête avec `requestId` unique ; filtre global normalisant toutes les réponses d'erreur            |
 
 ### Flux d'une Requête
 
@@ -217,71 +238,78 @@ API Gateway
 
 ---
 
-## 📋 Backlogs API Gateway
+## 📋 Backlogs API Gateway (Détaillé)
 
-> Toutes les tâches à réaliser pour ce service, organisées par phase.  
-> Chaque phase dispose d'un **fichier Markdown détaillé** dans le dossier [`Phases/`](./Phases/).
+Ce backlog détaille les tâches techniques réalisées pour l'infrastructure de la Gateway et l'intégration des services de **Meriem** (Auth, Flight, Check-in).
 
-| ID | Phase | Tâche | Type | Priorité | Dépendances | Statut |
-|----|-------|-------|------|----------|-------------|--------|
-| **AG-1** | [Phase 1](./Phases/PHASE-1-init-configuration.md) | Initialisation NestJS & configuration de base | Setup | 🔴 Critique | — | ☐ |
-| **AG-2** | [Phase 2](./Phases/PHASE-2-proxy-routing.md) | Proxy & routage vers les microservices | Core Feature | 🔴 Critique | AG-1 | ☐ |
-| **AG-3** | [Phase 3](./Phases/PHASE-3-jwt-security.md) | Security Filter global — Validation JWT | Sécurité | 🔴 Critique | AG-1 | ☐ |
-| **AG-4** | [Phase 4](./Phases/PHASE-4-rate-limiting.md) | Rate Limiting avec Redis | Sécurité / Perf | 🟡 Important | AG-1 | ☐ |
-| **AG-5** | [Phase 5](./Phases/PHASE-5-swagger.md) | Documentation Swagger globale centralisée | Documentation | 🟡 Important | AG-2, AG-3 | ☐ |
-| **AG-6** | [Phase 6](./Phases/PHASE-6-logging-errors.md) | Logging centralisé & gestion des erreurs globale | Observabilité | 🟠 Moyen | AG-1 | ☐ |
+| Phase | Tâches Détaillées | État | Cible / Service |
+|:---:|:---|:---:|:---:|
+| **1** | Initialisation NestJS, ConfigModule (Namespaces), HealthModule & Dockerfile. | ✅ | Core Gateway |
+| **2** | Implémentation `ProxyService` (Axios) & Forwarding transparent (Headers, Body). | ✅ | Core / Proxy |
+| **2** | Création des contrôleurs Proxy pour les services de Meriem. | ✅ | Auth, Flight, Checkin |
+| **3** | Implémentation `JwtAuthGuard` global & Décorateur `@Public()`. | ✅ | Sécurité |
+| **3** | Injection automatique des headers d'identité (`X-User-Id`, `X-User-Email`). | ✅ | Intégration Meriem |
+| **4** | Mise en place `RedisThrottlerStorage` (Compatible NestJS v5+). | ✅ | Sécurité / Redis |
+| **4** | Application de limites spécifiques (Login: 10/min, Register: 5/min). | ✅ | Auth Service |
+| **5** | Configuration `setupSwagger` centralisée avec Support Bearer Auth. | ✅ | Documentation |
+| **5** | Annotation Swagger détaillée de tous les endpoints proxifiés de Meriem. | ✅ | UI / Swagger |
+| **6** | Configuration Winston (JSON logs) & Intercepteur de logging (Duration). | ✅ | Observabilité |
+| **6** | `AllExceptionsFilter` pour normaliser les erreurs des microservices. | ✅ | Core / Errors |
+| **6** | Génération et propagation du `requestId` (UUID) dans tous les logs. | ✅ | Traçabilité |
+| **7** | **Orchestration Docker Compose finale avec réseau `tadkira-network`.** | ⏳ | Déploiement |
+| **+** | *Intégration future : OCR Service (Scan passeport)* | 🔴 | En attente |
+| **+** | *Intégration future : Boarding Pass Service (PDF/QR)* | 🔴 | En attente |
 
 ### Vue d'ensemble des User Stories
 
-| ID | En tant que… | Je veux… | Afin de… |
-|----|-------------|----------|----------|
-| **US-AG-1** | Développeur | Initialiser le projet NestJS avec toutes les configs | Avoir une base solide et prête pour les phases suivantes |
-| **US-AG-2** | Application mobile | Envoyer une requête à un seul endpoint | Atteindre le bon microservice sans connaître son adresse interne |
-| **US-AG-3** | Système | Valider le JWT de chaque requête entrante | Protéger tous les microservices des accès non autorisés |
-| **US-AG-4** | Système | Limiter le nombre de requêtes par IP | Prévenir les abus, force-brute et surcharges |
-| **US-AG-5** | Développeur/Testeur | Avoir une doc Swagger complète et centralisée | Comprendre et tester l'API sans documentation externe |
-| **US-AG-6** | Équipe DevOps | Avoir des logs structurés et des erreurs normalisées | Monitorer le service et diagnostiquer rapidement les incidents |
+| ID          | En tant que…        | Je veux…                                             | Afin de…                                                         |
+| ----------- | ------------------- | ---------------------------------------------------- | ---------------------------------------------------------------- |
+| **US-AG-1** | Développeur         | Initialiser le projet NestJS avec toutes les configs | Avoir une base solide et prête pour les phases suivantes         |
+| **US-AG-2** | Application mobile  | Envoyer une requête à un seul endpoint               | Atteindre le bon microservice sans connaître son adresse interne |
+| **US-AG-3** | Système             | Valider le JWT de chaque requête entrante            | Protéger tous les microservices des accès non autorisés          |
+| **US-AG-4** | Système             | Limiter le nombre de requêtes par IP                 | Prévenir les abus, force-brute et surcharges                     |
+| **US-AG-5** | Développeur/Testeur | Avoir une doc Swagger complète et centralisée        | Comprendre et tester l'API sans documentation externe            |
+| **US-AG-6** | Équipe DevOps       | Avoir des logs structurés et des erreurs normalisées | Monitorer le service et diagnostiquer rapidement les incidents   |
 
 ### Règles de Routage (Tableau Complet)
 
-| Route Source (Gateway) | Méthode | Service Cible | Auth | Rate Limit |
-|------------------------|---------|---------------|------|-----------|
-| `/health` | GET | *(interne)* | 🟢 Public | Non |
-| `/api/docs` | GET | *(interne)* | 🟢 Public | Non |
-| `/auth/register` | POST | Auth Service `:3001` | 🟢 Public | 5 req/60s |
-| `/auth/login` | POST | Auth Service `:3001` | 🟢 Public | 10 req/60s |
-| `/auth/google` | POST | Auth Service `:3001` | 🟢 Public | 10 req/60s |
-| `/auth/profile` | GET | Auth Service `:3001` | 🔐 JWT | 100 req/60s |
-| `/flights/search` | GET | Flight Service `:3002` | 🟢 Public | 100 req/60s |
-| `/flights/:id` | GET | Flight Service `:3002` | 🔐 JWT | 100 req/60s |
-| `/checkin/seats/:flightId` | GET | CheckIn Service `:3003` | 🔐 JWT | 100 req/60s |
-| `/checkin/seat/lock` | POST | CheckIn Service `:3003` | 🔐 JWT | 10 req/30s |
-| `/checkin/start` | POST | CheckIn Service `:3003` | 🔐 JWT | 100 req/60s |
-| `/checkin/complete` | POST | CheckIn Service `:3003` | 🔐 JWT | 100 req/60s |
-| `/ocr/passport` | POST | OCR Service `:3004` | 🔐 JWT | 5 req/5min |
-| `/boarding-pass/:checkInId` | GET | Boarding Pass Service `:3005` | 🔐 JWT | 100 req/60s |
+| Route Source (Gateway)      | Méthode | Service Cible                 | Auth      | Rate Limit  |
+| --------------------------- | ------- | ----------------------------- | --------- | ----------- |
+| `/health`                   | GET     | _(interne)_                   | 🟢 Public | Non         |
+| `/api/docs`                 | GET     | _(interne)_                   | 🟢 Public | Non         |
+| `/auth/register`            | POST    | Auth Service `:3001`          | 🟢 Public | 5 req/60s   |
+| `/auth/login`               | POST    | Auth Service `:3001`          | 🟢 Public | 10 req/60s  |
+| `/auth/google*`             | GET     | Auth Service `:3001`          | 🟢 Public | 10 req/60s  |
+| `/auth/refresh`             | POST    | Auth Service `:3001`          | 🟢 Public | 10 req/60s  |
+| `/auth/logout`              | POST    | Auth Service `:3001`          | 🔐 JWT    | 100 req/60s |
+| `/auth/profile/image`       | PATCH   | Auth Service `:3001`          | 🔐 JWT    | 10 req/60s  |
+| `/auth/verify-email`        | POST    | Auth Service `:3001`          | 🟢 Public | 5 req/60s   |
+| `/auth/resend-otp`          | POST    | Auth Service `:3001`          | 🟢 Public | 5 req/60s   |
+| `/users/me`                 | GET/PATCH| Auth Service `:3001`          | 🔐 JWT    | 100 req/60s |
+| `/users/device-token`       | POST    | Auth Service `:3001`          | 🔐 JWT    | 100 req/60s |
+| `/flights/:id`              | GET     | Flight Service `:3002`        | 🟢 Public | 100 req/60s |
+| `/flights/number/*`         | GET     | Flight Service `:3002`        | 🟢 Public | 100 req/60s |
+| `/bookings/pnr/:pnr`        | GET     | Flight Service `:3002`        | 🔐 JWT    | 100 req/60s |
+| `/bookings/user/:userId`    | GET     | Flight Service `:3002`        | 🟢 Public | 100 req/60s |
+| `/bookings/:id`             | GET     | Flight Service `:3002`        | 🟢 Public | 100 req/60s |
+| `/bookings/:id/claim`       | PATCH   | Flight Service `:3002`        | 🟢 Public | 100 req/60s |
+| `/passengers/*`             | GET     | Flight Service `:3002`        | 🟢 Public | 100 req/60s |
+| `/checkin/*`                | ALL     | CheckIn Service `:3003`       | 🔐 JWT    | 100 req/60s |
+| `/seats/:flightId`          | GET     | CheckIn Service `:3003`       | 🟢 Public | 100 req/60s |
+| `/seats/lock`               | POST/DEL| CheckIn Service `:3003`       | 🔐 JWT    | 10 req/30s  |
+| `/seats/confirm`            | PATCH   | CheckIn Service `:3003`       | 🔐 JWT    | 10 req/30s  |
+| `/ocr/passport`             | POST    | OCR Service `:3004`           | 🔐 JWT    | 5 req/5min  |
+| `/boarding-pass/:id`        | GET     | Boarding Pass Service `:3005` | 🔐 JWT    | 100 req/60s |
 
 ---
 
-## 📁 Phases de Développement
-
-Les phases sont des **guides d'implémentation complets** décrivant étape par étape toutes les tâches à réaliser.
-
-| Phase | Fichier | Description | Tâches |
-|-------|---------|-------------|--------|
-| **Phase 1** | [`PHASE-1-init-configuration.md`](./Phases/PHASE-1-init-configuration.md) | Init NestJS, structure, health check, Dockerfile, `.env` | AG-1 |
-| **Phase 2** | [`PHASE-2-proxy-routing.md`](./Phases/PHASE-2-proxy-routing.md) | Proxy HTTP, table de routage, gestion erreurs services | AG-2 |
-| **Phase 3** | [`PHASE-3-jwt-security.md`](./Phases/PHASE-3-jwt-security.md) | Guard JWT global, décorateur `@Public()`, injection contexte | AG-3 |
-| **Phase 4** | [`PHASE-4-rate-limiting.md`](./Phases/PHASE-4-rate-limiting.md) | Throttler Redis, règles par route, headers `X-RateLimit-*` | AG-4 |
-| **Phase 5** | [`PHASE-5-swagger.md`](./Phases/PHASE-5-swagger.md) | Setup Swagger, tags, Bearer auth, `@ApiProperty`, `@ApiResponse` | AG-5 |
-| **Phase 6** | [`PHASE-6-logging-errors.md`](./Phases/PHASE-6-logging-errors.md) | Winston/Pino, `requestId`, `AllExceptionsFilter`, format JSON | AG-6 |
 
 ---
 
-## 📂 Structure du Projet
+## 📂 Structure du Projet Actualisée
 
-```
-api-gateway/
+```text
+API-GATEWAY-SERVICE/
 ├── src/
 │   ├── main.ts                        # Bootstrap, config Swagger & guards globaux
 │   ├── app.module.ts                  # Module racine
@@ -292,48 +320,21 @@ api-gateway/
 │   │   └── redis.config.ts            # Connexion Redis (rate-limiting)
 │   │
 │   ├── common/
-│   │   ├── decorators/
-│   │   │   └── public.decorator.ts    # @Public() — bypass du JWT Guard
-│   │   ├── filters/
-│   │   │   └── all-exceptions.filter.ts  # Normalisation des erreurs globales
-│   │   ├── guards/
-│   │   │   └── jwt-auth.guard.ts      # Guard JWT appliqué globalement
-│   │   └── interceptors/
-│   │       └── logging.interceptor.ts # Log req/res + durée + requestId
-│   │
+│   │   ├── decorators/                # @Public(), @ThrottleLogin(), etc.
+│   │   ├── filters/                   # AllExceptionsFilter (Erreurs microservices)
+│   │   ├── guards/                    # JwtAuthGuard (Security Filter)
+│   │   ├── interceptors/              # LoggingInterceptor (requestId + duration)
+│   │   └── throttler/                 # RedisThrottlerStorage (v5 compatible)
 │   ├── proxy/
-│   │   ├── proxy.module.ts            # Module de proxy
-│   │   ├── proxy.service.ts           # Service de forwarding HTTP
-│   │   └── routes.config.ts           # Table de routage (source → cible)
-│   │
-│   ├── health/
-│   │   ├── health.module.ts
-│   │   └── health.controller.ts       # GET /health
-│   │
-│   └── swagger/
-│       └── swagger.setup.ts           # Configuration Swagger centralisée
-│
-├── Phases/
-│   ├── PHASE-1-init-configuration.md
-│   ├── PHASE-2-proxy-routing.md
-│   ├── PHASE-3-jwt-security.md
-│   ├── PHASE-4-rate-limiting.md
-│   ├── PHASE-5-swagger.md
-│   └── PHASE-6-logging-errors.md
-│
-├── test/
-│   ├── jwt-auth.guard.spec.ts
-│   ├── rate-limit.spec.ts
-│   └── proxy.spec.ts
-│
-├── .env.example
-├── .env                               # Non versionné
-├── Dockerfile
-├── docker-compose.yml
-├── nest-cli.json
-├── package.json
-├── tsconfig.json
-└── README.md
+│   │   ├── controllers/               # AuthProxy, FlightProxy, CheckinProxy
+│   │   ├── proxy.module.ts            # Configuration Nest Axios
+│   │   └── proxy.service.ts           # Logique de forwarding transparent
+│   ├── health/                        # Health check endpoint
+│   └── swagger/                       # Configuration Swagger centralisée
+├── Phases/                            # Backlogs et guides par phase
+├── test/                              # Tests unitaires et E2E
+├── .env.example                       # Template des variables requises
+└── docker-compose.yml                 # Orchestration du service
 ```
 
 ---
@@ -424,43 +425,46 @@ npm run lint          # Lint TypeScript
 
 ## 🔌 Endpoints & Routing
 
-### Public
+### Public 🟢
 
-| Méthode | Route | Description |
-|---------|-------|-------------|
-| `GET` | `/health` | Health check du service |
-| `GET` | `/api/docs` | Swagger UI |
-| `GET` | `/api/docs-json` | OpenAPI JSON spec |
-| `POST` | `/auth/register` | Inscription |
-| `POST` | `/auth/login` | Connexion email/mdp |
-| `POST` | `/auth/google` | Connexion SSO Google |
-| `GET` | `/flights/search?pnr=&lastName=` | Recherche de vol |
+| Méthode | Route                         | Description             |
+| ------- | ----------------------------- | ----------------------- |
+| `GET`   | `/health`                     | Health check du service |
+| `GET`   | `/api/docs`                   | Swagger UI              |
+| `POST`  | `/auth/register`              | Inscription             |
+| `POST`  | `/auth/login`                 | Connexion email/mdp     |
+| `GET`   | `/auth/google*`               | Connexion SSO Google    |
+| `POST`  | `/auth/refresh`               | Rafraîchir le token     |
+| `GET`   | `/flights/:id`                | Détails d'un vol        |
+| `GET`   | `/flights/number/*`           | Recherche par numéro    |
+| `GET`   | `/seats/:flightId`            | Carte des sièges        |
 
 ### Protégé 🔐 (JWT requis)
 
-| Méthode | Route | Service Cible |
-|---------|-------|---------------|
-| `GET` | `/auth/profile` | Auth Service |
-| `GET` | `/flights/:id` | Flight Service |
-| `GET` | `/checkin/seats/:flightId` | CheckIn Service |
-| `POST` | `/checkin/seat/lock` | CheckIn Service |
-| `POST` | `/checkin/start` | CheckIn Service |
-| `POST` | `/checkin/complete` | CheckIn Service |
-| `POST` | `/ocr/passport` | OCR Service |
-| `GET` | `/boarding-pass/:checkInId` | Boarding Pass Service |
+| Méthode      | Route                       | Service Cible         |
+| ------------ | --------------------------- | --------------------- |
+| `GET/PATCH`  | `/users/me`                 | Auth Service          |
+| `POST`       | `/auth/logout`              | Auth Service          |
+| `PATCH`      | `/auth/profile/image`       | Auth Service          |
+| `GET`        | `/bookings/pnr/:pnr`        | Flight Service        |
+| `ALL`        | `/checkin/*`                | CheckIn Service       |
+| `POST/DELETE`| `/seats/lock`               | CheckIn Service       |
+| `PATCH`      | `/seats/confirm`            | CheckIn Service       |
+| `POST`       | `/ocr/passport`             | OCR Service           |
+| `GET`        | `/boarding-pass/:id`        | Boarding Pass Service |
 
 ---
 
 ## 📊 Critères d'Évaluation
 
-| Critère | Attendu pour l'API Gateway |
-|---------|---------------------------|
-| **Architecture** | Code modulaire NestJS, séparation claire : proxy / guard / throttler / logger |
-| **Sécurité** | Guard JWT global robuste, routes publiques correctement exemptées, HTTPS |
-| **Performance** | Rate limiting Redis fonctionnel, faible latence de routage |
-| **Fonctionnalité** | Toutes les routes routées correctement, 503 sur service indisponible |
-| **Observabilité** | Logs JSON structurés avec requestId, erreurs normalisées |
-| **Documentation** | Swagger complet avec Bearer auth, tous les endpoints documentés |
+| Critère            | Attendu pour l'API Gateway                                                    |
+| ------------------ | ----------------------------------------------------------------------------- |
+| **Architecture**   | Code modulaire NestJS, séparation claire : proxy / guard / throttler / logger |
+| **Sécurité**       | Guard JWT global robuste, routes publiques correctement exemptées, HTTPS      |
+| **Performance**    | Rate limiting Redis fonctionnel, faible latence de routage                    |
+| **Fonctionnalité** | Toutes les routes routées correctement, 503 sur service indisponible          |
+| **Observabilité**  | Logs JSON structurés avec requestId, erreurs normalisées                      |
+| **Documentation**  | Swagger complet avec Bearer auth, tous les endpoints documentés               |
 
 ---
 
@@ -469,6 +473,6 @@ npm run lint          # Lint TypeScript
 **Projet Tadkira — API Gateway Service**  
 École Nationale Supérieure d'Informatique (ESI) · Promotion 2026 · 2CS SIL
 
-*Développé par l'équipe Tadkira*
+_Développé par l'équipe Tadkira_
 
 </div>

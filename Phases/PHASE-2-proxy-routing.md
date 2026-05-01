@@ -40,18 +40,33 @@ npm install -D @types/express
 
 | Route Source | Méthode | Service Cible | Protégé JWT | Rate Limit |
 |-------------|---------|---------------|-------------|-----------|
+| **Auth Service** | | | | |
 | `/auth/register` | POST | `AUTH_SERVICE_URL` | 🟢 Non | 5 req/60s |
 | `/auth/login` | POST | `AUTH_SERVICE_URL` | 🟢 Non | 10 req/60s |
-| `/auth/google` | POST | `AUTH_SERVICE_URL` | 🟢 Non | 10 req/60s |
-| `/auth/profile` | GET | `AUTH_SERVICE_URL` | 🔐 Oui | 100 req/60s |
-| `/flights/search` | GET | `FLIGHT_SERVICE_URL` | 🟢 Non | 100 req/60s |
-| `/flights/:id` | GET | `FLIGHT_SERVICE_URL` | 🔐 Oui | 100 req/60s |
-| `/checkin/seats/:flightId` | GET | `CHECKIN_SERVICE_URL` | 🔐 Oui | 100 req/60s |
-| `/checkin/seat/lock` | POST | `CHECKIN_SERVICE_URL` | 🔐 Oui | 10 req/30s |
-| `/checkin/start` | POST | `CHECKIN_SERVICE_URL` | 🔐 Oui | 100 req/60s |
-| `/checkin/complete` | POST | `CHECKIN_SERVICE_URL` | 🔐 Oui | 100 req/60s |
+| `/auth/google*` | GET | `AUTH_SERVICE_URL` | 🟢 Non | 10 req/60s |
+| `/auth/refresh` | POST | `AUTH_SERVICE_URL` | 🟢 Non | 10 req/60s |
+| `/auth/logout` | POST | `AUTH_SERVICE_URL` | 🔐 Oui | 100 req/60s |
+| `/auth/profile/image` | PATCH | `AUTH_SERVICE_URL` | 🔐 Oui | 10 req/60s |
+| `/auth/verify-email` | POST | `AUTH_SERVICE_URL` | 🟢 Non | 5 req/60s |
+| `/auth/resend-otp` | POST | `AUTH_SERVICE_URL` | 🟢 Non | 5 req/60s |
+| `/users/me` | GET/PATCH | `AUTH_SERVICE_URL` | 🔐 Oui | 100 req/60s |
+| `/users/device-token` | POST | `AUTH_SERVICE_URL` | 🔐 Oui | 100 req/60s |
+| **Flight Service** | | | | |
+| `/flights/:id` | GET | `FLIGHT_SERVICE_URL` | 🟢 Non | 100 req/60s |
+| `/flights/number/:flightNo` | GET | `FLIGHT_SERVICE_URL` | 🟢 Non | 100 req/60s |
+| `/bookings/pnr/:pnr` | GET | `FLIGHT_SERVICE_URL` | 🔐 Oui | 100 req/60s |
+| `/bookings/user/:userId` | GET | `FLIGHT_SERVICE_URL` | 🟢 Non | 100 req/60s |
+| `/bookings/:id` | GET | `FLIGHT_SERVICE_URL` | 🟢 Non | 100 req/60s |
+| `/bookings/:id/claim` | PATCH | `FLIGHT_SERVICE_URL` | 🟢 Non | 100 req/60s |
+| `/passengers/*` | GET | `FLIGHT_SERVICE_URL` | 🟢 Non | 100 req/60s |
+| **Check-in Service** | | | | |
+| `/checkin/*` | ALL | `CHECKIN_SERVICE_URL` | 🔐 Oui | 100 req/60s |
+| `/seats/:flightId` | GET | `CHECKIN_SERVICE_URL` | 🟢 Non | 100 req/60s |
+| `/seats/lock` | POST/DELETE | `CHECKIN_SERVICE_URL` | 🔐 Oui | 10 req/30s |
+| `/seats/confirm` | PATCH | `CHECKIN_SERVICE_URL` | 🔐 Oui | 10 req/30s |
+| **Autres (À venir)** | | | | |
 | `/ocr/passport` | POST | `OCR_SERVICE_URL` | 🔐 Oui | 5 req/5min |
-| `/boarding-pass/:checkInId` | GET | `BOARDING_PASS_SERVICE_URL` | 🔐 Oui | 100 req/60s |
+| `/boarding-pass/:id` | GET | `BOARDING_PASS_SERVICE_URL` | 🔐 Oui | 100 req/60s |
 
 ---
 
