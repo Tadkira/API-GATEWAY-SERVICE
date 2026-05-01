@@ -26,16 +26,16 @@ services:
       JWT_EXPIRATION: ${JWT_EXPIRATION:-24h}
 
       # Redis — fourni par l'infra partagée
-      REDIS_HOST: tadkira-redis
+      REDIS_HOST: redis
       REDIS_PORT: 6379
       REDIS_PASSWORD: ${REDIS_PASSWORD:-}
 
-      # URLs des microservices
-      AUTH_SERVICE_URL: ${AUTH_SERVICE_URL:-http://host.docker.internal:3001}
-      FLIGHT_SERVICE_URL: ${FLIGHT_SERVICE_URL:-http://host.docker.internal:3002}
-      CHECKIN_SERVICE_URL: ${CHECKIN_SERVICE_URL:-http://host.docker.internal:3003}
-      OCR_SERVICE_URL: ${OCR_SERVICE_URL:-http://host.docker.internal:3004}
-      BOARDING_PASS_SERVICE_URL: ${BOARDING_PASS_SERVICE_URL:-http://host.docker.internal:3005}
+      # URLs des microservices (utilisent les noms de conteneurs sur le réseau partagé)
+      AUTH_SERVICE_URL: ${AUTH_SERVICE_URL:-http://auth-service:3001}
+      FLIGHT_SERVICE_URL: ${FLIGHT_SERVICE_URL:-http://flight-booking-service:3002}
+      CHECKIN_SERVICE_URL: ${CHECKIN_SERVICE_URL:-http://checkin-service:3003}
+      OCR_SERVICE_URL: ${OCR_SERVICE_URL:-http://ocr-service:3004}
+      BOARDING_PASS_SERVICE_URL: ${BOARDING_PASS_SERVICE_URL:-http://boarding-pass-service:3005}
 
       # Rate Limiting
       THROTTLE_TTL: ${THROTTLE_TTL:-60}
