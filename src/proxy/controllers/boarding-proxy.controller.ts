@@ -17,7 +17,7 @@ import { ConfigService } from '@nestjs/config';
 import { ProxyService } from '../proxy.service';
 
 @ApiTags('Boarding Pass Proxy')
-@ApiBearerAuth()
+@ApiBearerAuth('JWT-Auth')
 @Controller('boarding-passes')
 export class BoardingProxyController {
   private readonly targetUrl: string;

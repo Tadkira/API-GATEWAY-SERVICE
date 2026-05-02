@@ -24,7 +24,7 @@ import { ProxyService } from '../proxy.service';
 import * as FormData from 'form-data';
 
 @ApiTags('Ocr Proxy')
-@ApiBearerAuth()
+@ApiBearerAuth('JWT-Auth')
 @Controller('ocr')
 export class OcrProxyController {
   private readonly targetUrl: string;

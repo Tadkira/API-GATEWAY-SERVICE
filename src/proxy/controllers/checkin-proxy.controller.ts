@@ -26,6 +26,7 @@ export class CheckinProxyController {
   }
 
   // /seats/*
+  @ApiBearerAuth('JWT-Auth')
   @All('seats/:flightId')
   @ApiOperation({ summary: 'Récupérer la carte des sièges d\'un vol' })
   @ApiParam({ name: 'flightId', example: 'uuid-vol-123' })
