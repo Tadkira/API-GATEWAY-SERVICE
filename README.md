@@ -39,8 +39,8 @@
 | **Auth Service** | 🟢 Intégré | `3001` | Service de **Meriem** — Entièrement proxifié & sécurisé |
 | **Flight Service** | 🟢 Intégré | `3002` | Service de **Meriem** — Entièrement proxifié |
 | **Check-in Service** | 🟢 Intégré | `3003` | Service de **Meriem** — Entièrement proxifié & Rate Limited |
-| **OCR Service** | 🔴 En attente | `3004` | *Attente développement collègue* |
-| **Boarding Pass** | 🔴 En attente | `3005` | *Attente développement collègue* |
+| **OCR Service** | 🟢 Intégré | `3004` | Service d'**Anis** — Scan passeport & MRZ |
+| **Boarding Pass** | 🟢 Intégré | `3005` | Service d'**Anis** — Génération PDF & QR Code |
 | **Shared Infra** | 🟢 Déployé | — | Un seul Redis, RabbitMQ & MinIO pour toute l'app |
 
 ---
@@ -437,21 +437,21 @@ npm run lint          # Lint TypeScript
 | `POST`  | `/auth/refresh`               | Rafraîchir le token     |
 | `GET`   | `/flights/:id`                | Détails d'un vol        |
 | `GET`   | `/flights/number/*`           | Recherche par numéro    |
-| `GET`   | `/seats/:flightId`            | Carte des sièges        |
 
 ### Protégé 🔐 (JWT requis)
 
-| Méthode      | Route                       | Service Cible         |
-| ------------ | --------------------------- | --------------------- |
-| `GET/PATCH`  | `/users/me`                 | Auth Service          |
-| `POST`       | `/auth/logout`              | Auth Service          |
-| `PATCH`      | `/auth/profile/image`       | Auth Service          |
-| `GET`        | `/bookings/pnr/:pnr`        | Flight Service        |
-| `ALL`        | `/checkin/*`                | CheckIn Service       |
-| `POST/DELETE`| `/seats/lock`               | CheckIn Service       |
-| `PATCH`      | `/seats/confirm`            | CheckIn Service       |
-| `POST`       | `/ocr/passport`             | OCR Service           |
-| `GET`        | `/boarding-pass/:id`        | Boarding Pass Service |
+| Méthode      | Route                       | Service Cible           | Description |
+| ------------ | --------------------------- | ----------------------- | ----------- |
+| `GET/PATCH`  | `/users/me`                 | **Auth** Service        | Profil & MaJ |
+| `POST`       | `/auth/logout`              | **Auth** Service        | Déconnexion |
+| `GET`        | `/bookings/pnr/:pnr`        | **Flight** Service      | Recherche Résa |
+| `ALL`        | `/checkin/*`                | **CheckIn** Service     | Workflow Enregistrement |
+| `GET`        | `/seats/:id`                | **CheckIn** Service     | Plan de cabine |
+| `POST/DEL`   | `/seats/lock`               | **CheckIn** Service     | Verrouillage siège |
+| `POST`       | `/ocr/sessions`             | **OCR** Service         | Upload Passeport |
+| `GET`        | `/ocr/sessions/:id`         | **OCR** Service         | Statut/Résultat OCR |
+| `GET`        | `/boarding-passes/:id`      | **Boarding** Service    | Téléchargement Passe |
+| `GET`        | `/boarding-passes/flight/*` | **Boarding** Service    | Passes par vol |
 
 ---
 
