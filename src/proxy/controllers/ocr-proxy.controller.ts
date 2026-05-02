@@ -21,6 +21,7 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { Request, Response } from 'express';
 import { ConfigService } from '@nestjs/config';
 import { ProxyService } from '../proxy.service';
+import { ThrottleOcr } from '../../common/decorators/throttle.decorator';
 import * as FormData from 'form-data';
 
 @ApiTags('Ocr Proxy')
@@ -37,6 +38,7 @@ export class OcrProxyController {
   }
 
   @Post('sessions')
+  @ThrottleOcr()
   @ApiOperation({ summary: 'Démarrer une session OCR avec upload passeport' })
   @ApiConsumes('multipart/form-data')
   @ApiBody({
