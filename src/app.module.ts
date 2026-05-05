@@ -26,8 +26,8 @@ import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
     WinstonModule.forRoot(loggerConfig),
     ThrottlerModule.forRootAsync({
       imports: [ConfigModule],
-      inject: [ConfigService, RedisThrottlerStorage],
-      useFactory: (configService: ConfigService, storage: RedisThrottlerStorage) => ({
+      inject: [ConfigService],
+      useFactory: (configService: ConfigService) => ({
         throttlers: [
           {
             name: 'default',
@@ -35,7 +35,7 @@ import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
             limit: configService.get<number>('throttle.limit') || 100,
           },
         ],
-        storage,
+        storage: new RedisThrottlerStorage(configService),
       }),
     }),
     JwtModule.registerAsync({

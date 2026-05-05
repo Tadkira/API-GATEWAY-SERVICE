@@ -5,7 +5,7 @@ WORKDIR /app
 
 COPY package*.json tsconfig*.json nest-cli.json ./
 
-RUN npm ci
+RUN npm ci --legacy-peer-deps
 
 COPY src ./src
 
@@ -20,7 +20,7 @@ ENV NODE_ENV=production
 
 COPY package*.json ./
 
-RUN npm ci --omit=dev
+RUN npm ci --omit=dev --legacy-peer-deps
 
 COPY --from=build /app/dist ./dist
 
