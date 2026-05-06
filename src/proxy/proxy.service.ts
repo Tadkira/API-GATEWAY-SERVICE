@@ -24,8 +24,14 @@ export class ProxyService {
     targetBaseUrl: string,
     targetPath?: string,
   ): Promise<void> {
-    const path = targetPath ?? req.originalUrl;
+    // ✅ req.path au lieu de req.originalUrl
+    // req.path = "/bookings/pnr/ABCD123"       (sans query params)
+    // req.originalUrl = "/bookings/pnr/ABCD123?lastName=Meriem" (avec query params)
+    // On passe les query params séparément via params: req.query
+    // pour éviter le doublon
+    const path = targetPath ?? req.path;
     const targetUrl = `${targetBaseUrl}${path}`;
+
     const startTime = Date.now();
 
     // Headers to forward
@@ -34,7 +40,9 @@ export class ProxyService {
     delete headersToForward['connection'];
     delete headersToForward['content-length'];
 
-    this.logger.log(`→ Forwarding [${req.method}] ${req.originalUrl} → ${targetUrl}`);
+    this.logger.log(
+      `→ Forwarding [${req.method}] ${req.originalUrl} → ${targetUrl}`,
+    );
 
     try {
       const response = await lastValueFrom(
@@ -43,14 +51,16 @@ export class ProxyService {
           url: targetUrl,
           headers: headersToForward,
           data: req.body,
-          params: req.query,
-          responseType: 'arraybuffer', // Support for binary data like PDFs or images
-          validateStatus: () => true,  // Don't throw error on 4xx/5xx, pass them to client
+          params: req.query,        // ✅ query params passés UNE SEULE FOIS
+          responseType: 'arraybuffer',
+          validateStatus: () => true,
         }),
       );
 
       const duration = Date.now() - startTime;
-      this.logger.log(`← Response [${response.status}] from ${targetUrl} (${duration}ms)`);
+      this.logger.log(
+        `← Response [${response.status}] from ${targetUrl} (${duration}ms)`,
+      );
 
       // Forward response headers
       const responseHeaders = response.headers as Record<string, string>;
@@ -61,12 +71,13 @@ export class ProxyService {
       });
 
       res.status(response.status).send(response.data);
+
     } catch (error) {
       const duration = Date.now() - startTime;
       const axiosError = error as AxiosError;
-
-      this.logger.error(`✗ Service unavailable: ${targetUrl} (${duration}ms) — ${axiosError.message}`);
-
+      this.logger.error(
+        `✗ Service unavailable: ${targetUrl} (${duration}ms) — ${axiosError.message}`,
+      );
       throw new ServiceUnavailableException(
         `Target service is temporarily unavailable. Please try again later.`,
       );
