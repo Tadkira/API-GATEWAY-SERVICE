@@ -37,3 +37,6 @@ coverage/
 *.sln
 .DS_Store
 Thumbs.db
+
+*.sql
+

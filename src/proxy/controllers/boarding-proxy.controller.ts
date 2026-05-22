@@ -71,6 +71,20 @@ export class BoardingProxyController {
     return this.proxyService.forward(req, res, this.targetUrl);
   }
 
+  // ─── GET /boarding-passes/booking/:bookingId ─────────────────────────────
+  @Get('booking/:bookingId')
+  @ApiOperation({
+    summary: 'Récupérer par booking ID',
+    description: 'Retourne le boarding pass associé à un booking ID.',
+  })
+  @ApiResponse({ status: 200, description: 'Boarding pass trouvé' })
+  @ApiResponse({ status: 401, description: 'Token JWT absent ou invalide' })
+  @ApiResponse({ status: 404, description: 'Boarding pass introuvable' })
+  @ApiResponse({ status: 503, description: 'Boarding Pass Service indisponible' })
+  async findByBooking(@Req() req: Request, @Res() res: Response) {
+    return this.proxyService.forward(req, res, this.targetUrl);
+  }
+
   // ─── POST /boarding-passes ────────────────────────────────────────────────
   @Post()
   @ApiOperation({
