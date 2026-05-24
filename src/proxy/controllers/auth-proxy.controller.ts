@@ -58,9 +58,25 @@ export class AuthProxyController {
 
   @Public()
   @ThrottleLogin()
-  @All('auth/google*path')
+  @All('auth/google')
   @ApiOperation({ summary: 'Connexion via Google SSO' })
   google(@Req() req: Request, @Res() res: Response) {
+    return this.proxyService.forward(req, res, this.authServiceUrl);
+  }
+
+  @Public()
+  @ThrottleLogin()
+  @All('auth/google/callback')
+  @ApiOperation({ summary: 'Callback Google SSO' })
+  googleCallback(@Req() req: Request, @Res() res: Response) {
+    return this.proxyService.forward(req, res, this.authServiceUrl);
+  }
+
+  @Public()
+  @ThrottleLogin()
+  @All('auth/google/mobile')
+  @ApiOperation({ summary: 'Connexion mobile via Google SSO' })
+  googleMobile(@Req() req: Request, @Res() res: Response) {
     return this.proxyService.forward(req, res, this.authServiceUrl);
   }
 
