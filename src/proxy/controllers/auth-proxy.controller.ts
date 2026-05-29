@@ -129,4 +129,38 @@ export class AuthProxyController {
   saveDeviceToken(@Req() req: Request, @Res() res: Response) {
     return this.proxyService.forward(req, res, this.authServiceUrl);
   }
+ // ─── FORGOT PASSWORD (PUBLIC REQUEST VIA EMAIL) ──────────────────────────
+  @Public()
+  @All('auth/forgot-password')
+  @ApiOperation({ summary: 'Demander un lien de réinitialisation de mot de passe par email' })
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        email: { type: 'string', example: 'ahmed@example.com' },
+      },
+    },
+  })
+  @ApiResponse({ status: 200, description: 'Email envoyé' })
+  forgotPassword(@Req() req: Request, @Res() res: Response) {
+    return this.proxyService.forward(req, res, this.authServiceUrl);
+  }
+
+  // ─── RESET PASSWORD (PUBLIC VERIFICATION VIA TOKEN) ──────────────────────
+  @Public()
+  @All('auth/reset-password')
+  @ApiOperation({ summary: 'Réinitialiser le mot de passe en utilisant le token de vérification' })
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        token: { type: 'string', example: 'a9f8b7...' },
+        newPassword: { type: 'string', example: 'NewSecurePass123!' },
+      },
+    },
+  })
+  @ApiResponse({ status: 200, description: 'Mot de passe réinitialisé avec succès' })
+  resetPassword(@Req() req: Request, @Res() res: Response) {
+    return this.proxyService.forward(req, res, this.authServiceUrl);
+  }
 }

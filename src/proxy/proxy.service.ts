@@ -14,31 +14,30 @@ export class ProxyService {
 
   constructor(private readonly httpService: HttpService) {}
 
-  /**
-   * Forwards a request to a target microservice.
-   * Transmits method, headers, body, and query params.
-   */
   async forward(
     req: Request,
     res: Response,
     targetBaseUrl: string,
     targetPath?: string,
   ): Promise<void> {
-    // ✅ req.path au lieu de req.originalUrl
-    // req.path = "/bookings/pnr/ABCD123"       (sans query params)
-    // req.originalUrl = "/bookings/pnr/ABCD123?lastName=Meriem" (avec query params)
-    // On passe les query params séparément via params: req.query
-    // pour éviter le doublon
+
     const path = targetPath ?? req.path;
     const targetUrl = `${targetBaseUrl}${path}`;
-
     const startTime = Date.now();
 
-    // Headers to forward
-    const headersToForward = { ...req.headers };
+    const contentType = req.headers['content-type'] || '';
+    const isMultipart = contentType.includes('multipart/form-data');
+
+    // Forward headers safely
+    const headersToForward: any = { ...req.headers };
+
     delete headersToForward['host'];
     delete headersToForward['connection'];
-    delete headersToForward['content-length'];
+
+    // IMPORTANT: do NOT break multipart boundary
+    if (!isMultipart) {
+      delete headersToForward['content-length'];
+    }
 
     this.logger.log(
       `→ Forwarding [${req.method}] ${req.originalUrl} → ${targetUrl}`,
@@ -50,20 +49,30 @@ export class ProxyService {
           method: req.method as any,
           url: targetUrl,
           headers: headersToForward,
-          data: req.body,
-          params: req.query,        // ✅ query params passés UNE SEULE FOIS
+
+          // ✅ KEY FIX
+          // JSON routes → req.body
+          // Multipart routes → raw req stream
+          data: isMultipart ? req : req.body,
+
+          params: req.query,
           responseType: 'arraybuffer',
           validateStatus: () => true,
+
+          maxBodyLength: Infinity,
+          maxContentLength: Infinity,
         }),
       );
 
       const duration = Date.now() - startTime;
+
       this.logger.log(
         `← Response [${response.status}] from ${targetUrl} (${duration}ms)`,
       );
 
       // Forward response headers
       const responseHeaders = response.headers as Record<string, string>;
+
       Object.keys(responseHeaders).forEach((key) => {
         if (!['transfer-encoding', 'connection'].includes(key.toLowerCase())) {
           res.setHeader(key, responseHeaders[key]);
@@ -75,11 +84,13 @@ export class ProxyService {
     } catch (error) {
       const duration = Date.now() - startTime;
       const axiosError = error as AxiosError;
+
       this.logger.error(
         `✗ Service unavailable: ${targetUrl} (${duration}ms) — ${axiosError.message}`,
       );
+
       throw new ServiceUnavailableException(
-        `Target service is temporarily unavailable. Please try again later.`,
+        'Target service is temporarily unavailable. Please try again later.',
       );
     }
   }

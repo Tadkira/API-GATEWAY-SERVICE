@@ -10,10 +10,8 @@ async function bootstrap() {
   const configService = app.get(ConfigService);
   const port = configService.get<number>('app.port') || 3000;
 
-  // Configuration Swagger (Phase 5)
   setupSwagger(app);
 
-  // Utiliser Winston pour tous les logs (Phase 6)
   app.useLogger(app.get(WINSTON_MODULE_NEST_PROVIDER));
 
   app.enableCors({
@@ -23,7 +21,8 @@ async function bootstrap() {
     exposedHeaders: ['X-Request-ID', 'X-RateLimit-Limit', 'X-RateLimit-Remaining'],
   });
 
-  await app.listen(port);
+  await app.listen(port, '0.0.0.0');
+
   console.log(`🚀 API Gateway démarré sur le port ${port}`);
   console.log(`🩺 Health check : http://localhost:${port}/health`);
 }
